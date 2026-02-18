@@ -1,110 +1,109 @@
 import { PlanetData } from '@/data/planets';
-import { ChevronUpIcon, ChevronDownIcon } from 'lucide-react';
+import { ChevronUpIcon, ChevronDownIcon, Activity, Globe, Clock, Thermometer, Orbit } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import OrbitalDataPanel from '@/components/OrbitalDataPanel';
 
 interface PlanetInfoProps {
   planet: PlanetData;
 }
 
-const PlanetInfo = ({ planet }: PlanetInfoProps) => {
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true);
+const stats = (planet: PlanetData) => [
+  { label: 'Diameter', value: `${planet.diameter.toLocaleString()} km`, icon: Globe, pct: Math.min(planet.diameter / 150000, 1) },
+  { label: 'Distance from Sun', value: `${planet.distanceFromSun.toLocaleString()} M km`, icon: Orbit, pct: Math.min(planet.distanceFromSun / 5000, 1) },
+  { label: 'Day Length', value: `${planet.dayLength} Earth d`, icon: Clock, pct: null },
+  { label: 'Year Length', value: `${planet.yearLength.toLocaleString()} Earth d`, icon: Clock, pct: null },
+  { label: 'Moons', value: `${planet.moons}`, icon: Activity, pct: Math.min(planet.moons / 90, 1) },
+  { label: 'Surface Temp', value: planet.temperature, icon: Thermometer, pct: null },
+];
 
-  const stats = [
-    { label: 'Diameter', value: `${planet.diameter.toLocaleString()} km` },
-    { label: 'Distance', value: `${planet.distanceFromSun.toLocaleString()} M km` },
-    { label: 'Day Length', value: `${planet.dayLength} Earth ${planet.dayLength === 1 ? 'day' : 'days'}` },
-    { label: 'Year Length', value: `${planet.yearLength.toLocaleString()} Earth days` },
-    { label: 'Moons', value: `${planet.moons}` },
-    { label: 'Temperature', value: planet.temperature },
-  ];
+const PlanetInfo = ({ planet }: PlanetInfoProps) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [showOrbital, setShowOrbital] = useState(false);
+
+  const planetStats = stats(planet);
 
   return (
-    <>
-      <div className="md:hidden absolute bottom-4 left-4 z-30">
-        <Button
-          onClick={() => setIsMinimized(!isMinimized)}
-          size="sm"
-          className="bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-display"
+    <div className="absolute bottom-6 left-6 z-20 w-80 max-w-[calc(100vw-3rem)] animate-fade-up">
+      <div className="info-panel rounded-xl overflow-hidden">
+
+        {/* Header */}
+        <button
+          onClick={() => setIsExpanded(v => !v)}
+          className="w-full flex items-center gap-3 px-5 py-4 hover:bg-signal/5 transition-colors duration-200 group"
         >
-          {isMinimized ? planet.name : <ChevronDownIcon className="h-3 w-3" />}
-        </Button>
-      </div>
-
-      <div className={`absolute bottom-4 left-4 z-20 transition-transform duration-300 ${
-        isMinimized ? 'translate-y-full md:translate-y-0' : 'translate-y-0'
-      } md:translate-y-0`}>
-        
-        <div className="hidden md:block">
-          <div className="info-panel rounded-lg max-w-sm relative overflow-hidden">
-            <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between hover:bg-muted/50 p-4 rounded-none rounded-t-lg">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: planet.color, boxShadow: `0 0 8px ${planet.color}60` }}
-                    />
-                    <h2 className="text-lg font-bold text-foreground font-display">{planet.name}</h2>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="status-dot" />
-                    {isExpanded ? <ChevronUpIcon className="h-4 w-4 text-muted-foreground" /> : <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />}
-                  </div>
-                </Button>
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent>
-                <div className="p-4 pt-0 space-y-4 max-h-[60vh] overflow-y-auto">
-                  <p className="text-sm text-muted-foreground leading-relaxed font-body">{planet.description}</p>
-                  
-                  <div className="border-t border-border/50 pt-3">
-                    <div className="telemetry-label mb-2">Telemetry Data</div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                      {stats.map((stat) => (
-                        <div key={stat.label}>
-                          <div className="telemetry-label">{stat.label}</div>
-                          <div className="telemetry-value text-sm">{stat.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <OrbitalDataPanel planet={planet} />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+          {/* Planet color orb with glow */}
+          <span
+          className="w-4 h-4 rounded-full flex-shrink-0 transition-all duration-300"
+            style={{
+              backgroundColor: planet.color,
+              boxShadow: `0 0 12px ${planet.color}90, 0 0 24px ${planet.color}40, 0 0 0 2px ${planet.color}30`,
+            }}
+          />
+          <div className="flex-1 text-left">
+            <h2 className="display-heading text-lg text-foreground leading-none">{planet.name}</h2>
+            <p className="telemetry-label mt-0.5">Celestial Body · Class {planet.moons > 10 ? 'Gas Giant' : planet.moons > 0 ? 'Terrestrial' : 'Inner Planet'}</p>
           </div>
-        </div>
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <span className="status-dot" />
+            {isExpanded
+              ? <ChevronUpIcon className="h-4 w-4 text-muted-foreground group-hover:text-signal transition-colors" />
+              : <ChevronDownIcon className="h-4 w-4 text-muted-foreground group-hover:text-signal transition-colors" />
+            }
+          </div>
+        </button>
 
-        <div className="md:hidden">
-          <div className="info-panel rounded-lg w-72 max-w-[calc(100vw-64px)] max-h-[60vh] overflow-auto relative">
-            <div className="p-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: planet.color, boxShadow: `0 0 6px ${planet.color}60` }} />
-                <h2 className="text-base font-bold text-foreground font-display">{planet.name}</h2>
-                <div className="status-dot ml-auto" />
+        {isExpanded && (
+          <div className="px-5 pb-5 space-y-4">
+            {/* Description */}
+            <p className="text-sm text-muted-foreground leading-relaxed font-body border-l-2 border-signal/30 pl-3">
+              {planet.description}
+            </p>
+
+            {/* Stats grid */}
+            <div className="space-y-2.5">
+              <div className="telemetry-label flex items-center gap-2">
+                <span className="inline-block w-4 h-px bg-signal/50" />
+                Telemetry Data
+                <span className="inline-block flex-1 h-px bg-signal/20" />
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed font-body">{planet.description}</p>
-              
-              <div className="border-t border-border/50 pt-2 space-y-1.5">
-                {stats.map((stat) => (
-                  <div key={stat.label} className="flex justify-between items-center">
-                    <span className="telemetry-label">{stat.label}</span>
-                    <span className="telemetry-value text-sm">{stat.value}</span>
+
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                {planetStats.map((stat) => (
+                  <div key={stat.label} className="space-y-1">
+                    <div className="telemetry-label">{stat.label}</div>
+                    <div className="telemetry-value text-sm">{stat.value}</div>
+                    {stat.pct !== null && (
+                      <div className="data-bar mt-1">
+                        <div
+                          className="data-bar-fill"
+                          style={{ width: `${stat.pct * 100}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-
-              <OrbitalDataPanel planet={planet} />
             </div>
+
+            {/* Orbital mechanics toggle */}
+            <button
+              onClick={() => setShowOrbital(v => !v)}
+              className="w-full flex items-center justify-between py-2 px-3 rounded-lg bg-signal/5 hover:bg-signal/10 border border-signal/15 transition-all duration-200"
+            >
+              <span className="telemetry-label text-signal/90 tracking-wider">
+                Orbital Mechanics · Kepler
+              </span>
+              {showOrbital
+                ? <ChevronUpIcon className="h-3.5 w-3.5 text-signal" />
+                : <ChevronDownIcon className="h-3.5 w-3.5 text-signal" />
+              }
+            </button>
+
+            {showOrbital && <OrbitalDataPanel planet={planet} />}
           </div>
-        </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 
