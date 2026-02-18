@@ -1,0 +1,223 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&display=swap');
+
+@layer base {
+  :root {
+    --background: 220 30% 6%;
+    --foreground: 210 20% 92%;
+
+    --card: 220 35% 10%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 220 35% 10%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 200 80% 55%;
+    --primary-foreground: 220 30% 6%;
+
+    --secondary: 220 25% 18%;
+    --secondary-foreground: 210 20% 85%;
+
+    --muted: 220 20% 14%;
+    --muted-foreground: 215 15% 55%;
+
+    --accent: 260 60% 50%;
+    --accent-foreground: 210 20% 95%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 210 20% 95%;
+
+    --border: 215 25% 20%;
+    --input: 215 25% 20%;
+    --ring: 200 80% 55%;
+
+    --radius: 0.375rem;
+
+    --sidebar-background: 220 35% 8%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 200 80% 55%;
+    --sidebar-primary-foreground: 220 30% 6%;
+    --sidebar-accent: 220 25% 14%;
+    --sidebar-accent-foreground: 210 20% 85%;
+    --sidebar-border: 215 25% 18%;
+    --sidebar-ring: 200 80% 55%;
+
+    /* NASA Mission Control tokens */
+    --nasa-cyan: 190 85% 50%;
+    --nasa-gold: 45 90% 55%;
+    --nasa-red: 0 75% 55%;
+    --nasa-green: 145 65% 45%;
+    --nasa-panel: 220 40% 8%;
+    --nasa-panel-border: 200 40% 25%;
+    --nasa-glow: 200 80% 55%;
+  }
+
+  .dark {
+    --background: 220 30% 6%;
+    --foreground: 210 20% 92%;
+    --card: 220 35% 10%;
+    --card-foreground: 210 20% 92%;
+    --popover: 220 35% 10%;
+    --popover-foreground: 210 20% 92%;
+    --primary: 200 80% 55%;
+    --primary-foreground: 220 30% 6%;
+    --secondary: 220 25% 18%;
+    --secondary-foreground: 210 20% 85%;
+    --muted: 220 20% 14%;
+    --muted-foreground: 215 15% 55%;
+    --accent: 260 60% 50%;
+    --accent-foreground: 210 20% 95%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 210 20% 95%;
+    --border: 215 25% 20%;
+    --input: 215 25% 20%;
+    --ring: 200 80% 55%;
+    --sidebar-background: 220 35% 8%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 200 80% 55%;
+    --sidebar-primary-foreground: 220 30% 6%;
+    --sidebar-accent: 220 25% 14%;
+    --sidebar-accent-foreground: 210 20% 85%;
+    --sidebar-border: 215 25% 18%;
+    --sidebar-ring: 200 80% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Exo 2', system-ui, -apple-system, sans-serif;
+  }
+
+  canvas {
+    display: block;
+  }
+
+  /* Custom scrollbar for mission-control feel */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--nasa-panel));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--nasa-panel-border));
+    border-radius: 2px;
+  }
+}
+
+/* NASA Mission Control Panel */
+.info-panel {
+  background: hsl(var(--nasa-panel) / 0.88);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid hsl(var(--nasa-panel-border) / 0.5);
+  box-shadow: 
+    0 0 20px hsl(var(--nasa-glow) / 0.08),
+    0 8px 32px hsl(220 30% 6% / 0.6),
+    inset 0 1px 0 hsl(var(--nasa-panel-border) / 0.2);
+}
+
+.info-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--nasa-cyan) / 0.4), transparent);
+}
+
+/* Planet navigation button */
+.planet-btn {
+  transition: all 0.2s ease;
+  position: relative;
+  font-family: 'Exo 2', sans-serif;
+}
+
+.planet-btn:hover, .planet-btn.active {
+  background: hsl(var(--nasa-cyan) / 0.15);
+  border-left: 2px solid hsl(var(--nasa-cyan));
+}
+
+/* Telemetry-style label */
+.telemetry-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: hsl(var(--nasa-cyan) / 0.7);
+}
+
+.telemetry-value {
+  font-family: 'Exo 2', sans-serif;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+}
+
+/* Status indicator */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: hsl(var(--nasa-green));
+  box-shadow: 0 0 6px hsl(var(--nasa-green) / 0.6);
+  animation: pulse-status 2s ease-in-out infinite;
+}
+
+@keyframes pulse-status {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Loading animation */
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.scan-line {
+  animation: scan-line 2s linear infinite;
+  background: linear-gradient(180deg, transparent, hsl(var(--nasa-cyan) / 0.1), transparent);
+  height: 50%;
+}
+
+.space-bg {
+  background: hsl(var(--background));
+}
+
+/* Targeting reticle animation */
+@keyframes reticle-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes reticle-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.reticle-ring {
+  animation: reticle-pulse 1.5s ease-in-out infinite;
+}
+
+/* Premium glassmorphism panel enhancement */
+.info-panel {
+  background: hsl(var(--nasa-panel) / 0.92);
+  backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid hsl(var(--nasa-panel-border) / 0.4);
+  box-shadow: 
+    0 0 30px hsl(var(--nasa-glow) / 0.06),
+    0 12px 40px hsl(220 30% 6% / 0.7),
+    inset 0 1px 0 hsl(var(--nasa-panel-border) / 0.15);
+}
