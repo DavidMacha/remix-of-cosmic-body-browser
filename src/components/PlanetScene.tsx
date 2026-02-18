@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { PlanetData } from '@/data/planets';
 import { createSkybox, createStars } from './three/SkyboxCreator';
@@ -15,9 +15,10 @@ interface PlanetSceneProps {
   onSceneReady?: () => void;
   isSpaceView?: boolean;
   highlightPlanetId?: string | null;
+  timeScale?: number; // multiplier (negative = reverse, 0 = paused)
 }
 
-const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highlightPlanetId }: PlanetSceneProps) => {
+const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highlightPlanetId, timeScale = 1 }: PlanetSceneProps) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -26,13 +27,18 @@ const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highl
   const planetObjectsRef = useRef<Map<string, any> | null>(null);
   const reticleRef = useRef<THREE.Group | null>(null);
   const frameIdRef = useRef<number>(0);
+  const timeScaleRef = useRef<number>(timeScale);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Keep timeScale ref in sync so the animation loop always reads the latest value
+  useEffect(() => {
+    timeScaleRef.current = timeScale;
+  }, [timeScale]);
 
   // Targeting reticle for search highlight
   useEffect(() => {
     if (!sceneRef.current || !planetObjectsRef.current) return;
 
-    // Remove old reticle
     if (reticleRef.current) {
       sceneRef.current.remove(reticleRef.current);
       reticleRef.current = null;
@@ -79,17 +85,13 @@ const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highl
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 2000);
     camera.position.z = 20;
     camera.position.y = 10;
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance',
-    });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     (renderer as any).colorSpace = THREE.SRGBColorSpace;
@@ -117,6 +119,7 @@ const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highl
       selectedPlanetId: planet.id,
       isSpaceView,
       reticleRef,
+      getTimeScale: () => timeScaleRef.current,
     });
 
     frameIdRef.current = frameId;
@@ -146,21 +149,18 @@ function createTargetingReticle(): THREE.Group {
   const group = new THREE.Group();
   group.name = 'targetingReticle';
 
-  // Outer ring
   const ringGeo = new THREE.RingGeometry(6, 6.3, 64);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ccff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.rotation.x = Math.PI / 2;
   group.add(ring);
 
-  // Inner ring
   const innerRingGeo = new THREE.RingGeometry(4, 4.15, 64);
   const innerRingMat = new THREE.MeshBasicMaterial({ color: 0x00ccff, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
   const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
   innerRing.rotation.x = Math.PI / 2;
   group.add(innerRing);
 
-  // Crosshair lines
   const lineMat = new THREE.LineBasicMaterial({ color: 0x00ccff, transparent: true, opacity: 0.5 });
   const directions = [
     [[-8, 0, 0], [-4, 0, 0]],

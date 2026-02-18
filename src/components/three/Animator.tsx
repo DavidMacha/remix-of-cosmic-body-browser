@@ -9,10 +9,11 @@ interface AnimationProps {
   selectedPlanetId: string;
   isSpaceView?: boolean;
   reticleRef?: React.MutableRefObject<THREE.Group | null>;
+  getTimeScale: () => number; // live time scale accessor
 }
 
 export const setupAnimation = ({
-  renderer, scene, camera, planetObjects, selectedPlanetId, isSpaceView = false, reticleRef
+  renderer, scene, camera, planetObjects, selectedPlanetId, isSpaceView = false, reticleRef, getTimeScale,
 }: AnimationProps) => {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -20,37 +21,54 @@ export const setupAnimation = ({
   controls.enableZoom = true;
   controls.autoRotate = false;
 
-  let time = 0;
+  let simTime = 0; // simulation time (seconds, accumulates with scale)
   const targetPosition = new THREE.Vector3();
   const targetLookAt = new THREE.Vector3();
 
   const animate = () => {
-    time += 0.005;
+    const scale = getTimeScale();
+    simTime += 0.005 * scale; // base tick × user speed
 
     planetObjects.forEach((planetObj, planetId) => {
-      if (planetObj.mesh && planetObj.orbitMesh) {
-        const positions = planetObj.orbitMesh.geometry.attributes.position.array;
-        const orbitRadius = Math.sqrt(positions[0] * positions[0] + positions[2] * positions[2]);
+      if (planetObj.mesh) {
+        // Kepler elliptical motion
+        const a: number = planetObj.semiMajorAxis ?? 115;
+        const e: number = planetObj.eccentricity ?? 0;
+        const inc: number = (planetObj.inclination ?? 0) * (Math.PI / 180);
+        const b = a * Math.sqrt(1 - e * e);
+        const c = a * e;
+
         const speedMultiplier = getOrbitalSpeed(planetId);
-        const angle = time * speedMultiplier;
+        const angle = (planetObj.startAngle ?? 0) + simTime * speedMultiplier;
 
-        planetObj.mesh.position.x = Math.cos(angle) * orbitRadius;
-        planetObj.mesh.position.z = Math.sin(angle) * orbitRadius;
-        planetObj.mesh.rotation.y += 0.01;
+        // Parametric ellipse position
+        const xEllipse = a * Math.cos(angle) - c;
+        const yEllipse = b * Math.sin(angle);
 
+        planetObj.mesh.position.x = xEllipse;
+        planetObj.mesh.position.y = yEllipse * Math.sin(inc);
+        planetObj.mesh.position.z = yEllipse * Math.cos(inc);
+
+        // Axial rotation — sidereal day approximation
+        const rotSpeeds: Record<string, number> = {
+          mercury: 0.003, venus: -0.001, earth: 0.02, mars: 0.019,
+          jupiter: 0.045, saturn: 0.038, uranus: -0.022, neptune: 0.021,
+        };
+        planetObj.mesh.rotation.y += (rotSpeeds[planetId] || 0.01) * Math.abs(scale);
+
+        // Saturn rings follow planet
         if (planetId === 'saturn' && planetObj.ringsMesh) {
           planetObj.ringsMesh.position.copy(planetObj.mesh.position);
-          planetObj.ringsMesh.rotation.y += 0.003;
         }
 
+        // Moons orbit their planet
         if (planetObj.moons && planetObj.moonOrbitMeshes) {
           planetObj.moons.forEach((moon: THREE.Mesh, index: number) => {
             const moonOrbit = planetObj.moonOrbitMeshes[index];
             if (moonOrbit) {
               const moonPositions = moonOrbit.geometry.attributes.position.array;
-              const moonRadius = Math.sqrt(moonPositions[0] * moonPositions[0] + moonPositions[2] * moonPositions[2]);
-              const moonAngle = time * (speedMultiplier * 5 + index);
-
+              const moonRadius = Math.sqrt(moonPositions[0] ** 2 + moonPositions[2] ** 2);
+              const moonAngle = simTime * (speedMultiplier * 5 + index);
               moon.position.x = planetObj.mesh.position.x + Math.cos(moonAngle) * moonRadius;
               moon.position.y = planetObj.mesh.position.y;
               moon.position.z = planetObj.mesh.position.z + Math.sin(moonAngle) * moonRadius;
@@ -63,14 +81,14 @@ export const setupAnimation = ({
 
     // Belts & comets
     const asteroidBelt = scene.getObjectByName('asteroidBelt');
-    if (asteroidBelt) asteroidBelt.rotation.y += 0.0005;
+    if (asteroidBelt) asteroidBelt.rotation.y += 0.0005 * Math.sign(scale || 1);
     const kuiperBelt = scene.getObjectByName('kuiperBelt');
-    if (kuiperBelt) kuiperBelt.rotation.y += 0.0002;
+    if (kuiperBelt) kuiperBelt.rotation.y += 0.0002 * Math.sign(scale || 1);
     const comets = scene.getObjectByName('comets');
     if (comets) {
       comets.children.forEach((comet, index) => {
-        const cometAngle = time * 0.1 + (index * Math.PI * 2 / comets.children.length);
-        const distance = 200 + Math.sin(time * 0.2 + index) * 100;
+        const cometAngle = simTime * 0.1 + (index * Math.PI * 2 / comets.children.length);
+        const distance = 200 + Math.sin(simTime * 0.2 + index) * 100;
         comet.position.x = Math.cos(cometAngle) * distance;
         comet.position.z = Math.sin(cometAngle) * distance;
         comet.lookAt(0, 0, 0);
@@ -78,19 +96,12 @@ export const setupAnimation = ({
       });
     }
 
-    // Animate targeting reticle
+    // Targeting reticle
     if (reticleRef?.current) {
-      reticleRef.current.rotation.y = time * 2;
-      // Follow the highlighted planet
-      const selectedObj = Array.from(planetObjects.entries()).find(([_, obj]) => {
-        const reticlePos = reticleRef.current!.position;
-        // Snap reticle to the planet it's nearest to
-        return obj.mesh && obj.mesh.position.distanceTo(reticlePos) < 50;
-      });
-      // Just spin the reticle; position is updated by PlanetScene effect
+      reticleRef.current.rotation.y = simTime * 2;
     }
 
-    // Slow-rotate constellation group for subtle movement
+    // Constellation drift
     const constGroup = scene.getObjectByName('constellations');
     if (constGroup) constGroup.rotation.y += 0.00005;
 
@@ -102,7 +113,6 @@ export const setupAnimation = ({
         targetPosition.y += 25;
         targetPosition.z += 40;
         targetLookAt.copy(selectedPlanet.mesh.position);
-
         camera.position.lerp(targetPosition, 0.02);
         const currentTarget = controls.target.clone();
         currentTarget.lerp(targetLookAt, 0.02);
@@ -120,9 +130,10 @@ export const setupAnimation = ({
 };
 
 const getOrbitalSpeed = (planetId: string): number => {
+  // Relative orbital speeds (Earth = 1.0), based on Kepler's 3rd law
   const speeds: Record<string, number> = {
-    mercury: 2.0, venus: 1.6, earth: 1.0, mars: 0.8,
-    jupiter: 0.4, saturn: 0.3, uranus: 0.2, neptune: 0.15,
+    mercury: 4.15, venus: 1.62, earth: 1.0, mars: 0.531,
+    jupiter: 0.084, saturn: 0.034, uranus: 0.012, neptune: 0.006,
   };
   return speeds[planetId] || 1.0;
 };
@@ -152,10 +163,6 @@ export const createOrbitPath = (radius: number): THREE.Line => {
     vertices.push(Math.cos(theta) * radius, 0, Math.sin(theta) * radius);
   }
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  const material = new THREE.LineBasicMaterial({
-    color: 0x334466,
-    transparent: true,
-    opacity: 0.2,
-  });
+  const material = new THREE.LineBasicMaterial({ color: 0x334466, transparent: true, opacity: 0.2 });
   return new THREE.Line(geometry, material);
 };
