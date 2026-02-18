@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PlanetScene from '@/components/PlanetScene';
 import PlanetInfo from '@/components/PlanetInfo';
 import PlanetNavigation from '@/components/PlanetNavigation';
 import PlanetSearch from '@/components/PlanetSearch';
 import PlanetComparison from '@/components/PlanetComparison';
+import TimeLapseControls from '@/components/TimeLapseControls';
+import AstronomerChat from '@/components/AstronomerChat';
 import { planets } from '@/data/planets';
 import { toast } from '@/components/ui/use-toast';
 import SupportChat from '@/components/SupportChat';
@@ -15,6 +17,7 @@ const Index = () => {
   const [isSpaceView, setIsSpaceView] = useState(false);
   const [highlightPlanetId, setHighlightPlanetId] = useState<string | null>(null);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
+  const [timeScale, setTimeScale] = useState(1);
 
   const selectedPlanet = planets.find(p => p.id === selectedPlanetId) || planets[2];
 
@@ -87,6 +90,7 @@ const Index = () => {
         onSceneReady={handleSceneReady}
         isSpaceView={isSpaceView}
         highlightPlanetId={highlightPlanetId}
+        timeScale={timeScale}
       />
 
       {/* ── Planet info panel ────────────────────────────────── */}
@@ -155,6 +159,14 @@ const Index = () => {
       <div className="absolute top-4 right-4 w-6 h-6 border-t border-r border-signal/25 pointer-events-none hidden md:block" />
       <div className="absolute bottom-4 left-4 w-6 h-6 border-b border-l border-signal/25 pointer-events-none" />
       <div className="absolute bottom-4 right-4 w-6 h-6 border-b border-r border-signal/25 pointer-events-none" />
+
+      {/* ── Time-lapse controls ───────────────────────────── */}
+      {sceneReady && (
+        <TimeLapseControls onTimeScaleChange={setTimeScale} />
+      )}
+
+      {/* ── AI Astronomer ─────────────────────────────────── */}
+      <AstronomerChat selectedPlanet={selectedPlanet} />
 
       <SupportChat />
     </div>
