@@ -1,8 +1,6 @@
-import { Button } from '@/components/ui/button';
 import { PlanetData } from '@/data/planets';
-import { RocketIcon, MenuIcon, XIcon, ChevronDownIcon, GitCompareArrows } from 'lucide-react';
+import { RocketIcon, GitCompareArrows, ChevronRightIcon, Crosshair } from 'lucide-react';
 import { useState } from 'react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface PlanetNavigationProps {
   planets: PlanetData[];
@@ -17,115 +15,140 @@ const PlanetNavigation = ({
   planets, selectedPlanetId, onSelectPlanet, onToggleSpaceView, isSpaceView = false, onOpenComparison
 }: PlanetNavigationProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <>
-      <div className="md:hidden absolute top-4 right-4 z-30">
-        <Button onClick={() => setIsOpen(!isOpen)} size="sm" className="bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border">
-          {isOpen ? <XIcon className="h-4 w-4" /> : <MenuIcon className="h-4 w-4" />}
-        </Button>
-      </div>
-
-      <div className={`absolute top-4 right-4 z-20 transition-transform duration-300 ${
-        isOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'
-      } md:translate-x-0`}>
-        
-        <div className="hidden md:block">
-          <div className="info-panel rounded-lg p-3 max-w-xs relative overflow-hidden">
-            <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between hover:bg-muted/50 p-2">
-                  <span className="font-bold text-sm tracking-widest uppercase text-foreground font-display">Navigation</span>
-                  <ChevronDownIcon className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                </Button>
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent className="space-y-3 mt-3">
-                <div className="flex gap-2">
-                  <Button
-                    className="flex-1 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 text-xs font-body"
-                    variant="ghost"
-                    onClick={onToggleSpaceView}
-                  >
-                    <RocketIcon className="mr-1.5 h-3.5 w-3.5" />
-                    {isSpaceView ? "Lock Target" : "Free Nav"}
-                  </Button>
-                  <Button
-                    className="flex-1 bg-accent/20 hover:bg-accent/30 text-accent border border-accent/30 text-xs font-body"
-                    variant="ghost"
-                    onClick={onOpenComparison}
-                  >
-                    <GitCompareArrows className="mr-1.5 h-3.5 w-3.5" />
-                    Compare
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-0.5 max-h-64 overflow-y-auto">
-                  {planets.map(planet => (
-                    <Button
-                      key={planet.id}
-                      className={`planet-btn w-full text-left text-sm justify-start rounded-sm ${
-                        selectedPlanetId === planet.id
-                          ? 'bg-primary/15 text-foreground border-l-2 border-l-primary'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                      variant="ghost"
-                      onClick={() => onSelectPlanet(planet.id)}
-                    >
-                      <span className="inline-block w-2.5 h-2.5 rounded-full mr-3 flex-shrink-0" style={{
-                        backgroundColor: planet.color,
-                        boxShadow: selectedPlanetId === planet.id ? `0 0 6px ${planet.color}80` : 'none'
-                      }} />
-                      <span className="truncate text-xs tracking-wide font-body">{planet.name}</span>
-                      {selectedPlanetId === planet.id && <span className="ml-auto status-dot" />}
-                    </Button>
-                  ))}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
+      {/* ── Desktop right-side panel ─────────────────────────── */}
+      <div className="hidden md:flex absolute top-6 right-6 z-20 flex-col gap-2 animate-fade-in">
+        {/* Action buttons */}
+        <div className="info-panel rounded-xl p-3 flex flex-col gap-2">
+          <button
+            onClick={onToggleSpaceView}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-body transition-all duration-200 border ${
+              isSpaceView
+                ? 'bg-signal/15 border-signal/40 text-signal'
+                : 'bg-transparent border-panel-border hover:bg-signal/8 hover:border-signal/30 text-muted-foreground hover:text-signal'
+            }`}
+          >
+            <RocketIcon className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="tracking-wider uppercase font-mono text-[0.62rem]">
+              {isSpaceView ? 'Lock Target' : 'Free Nav'}
+            </span>
+          </button>
+          <button
+            onClick={onOpenComparison}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-body transition-all duration-200 border border-panel-border hover:bg-accent/10 hover:border-accent/40 text-muted-foreground hover:text-accent"
+          >
+            <GitCompareArrows className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="tracking-wider uppercase font-mono text-[0.62rem]">Compare</span>
+          </button>
         </div>
 
-        <div className="md:hidden">
-          <div className="info-panel rounded-lg p-4 w-72 max-h-96 overflow-y-auto relative">
-            <h2 className="text-foreground font-bold mb-4 text-sm tracking-widest uppercase font-display">Navigation</h2>
-            
-            <div className="flex gap-2 mb-4">
-              <Button className="flex-1 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 text-xs" variant="ghost" onClick={() => { onToggleSpaceView?.(); setIsOpen(false); }}>
-                <RocketIcon className="mr-1.5 h-3.5 w-3.5" />
-                {isSpaceView ? "Lock" : "Free Nav"}
-              </Button>
-              <Button className="flex-1 bg-accent/20 hover:bg-accent/30 text-accent border border-accent/30 text-xs" variant="ghost" onClick={() => { onOpenComparison?.(); setIsOpen(false); }}>
-                <GitCompareArrows className="mr-1.5 h-3.5 w-3.5" />
-                Compare
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-0.5">
-              {planets.map(planet => (
-                <Button
+        {/* Planet list */}
+        <div className="info-panel rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-panel-border/60">
+            <p className="telemetry-label flex items-center gap-2">
+              <span className="status-dot-signal" />
+              Solar System Bodies
+            </p>
+          </div>
+          <div className="p-1.5 space-y-0.5 max-h-72 overflow-y-auto">
+            {planets.map(planet => {
+              const isSelected = planet.id === selectedPlanetId;
+              return (
+                <button
                   key={planet.id}
-                  className={`planet-btn w-full text-left text-xs justify-start rounded-sm ${
-                    selectedPlanetId === planet.id
-                      ? 'bg-primary/15 text-foreground border-l-2 border-l-primary'
-                      : 'text-muted-foreground hover:text-foreground'
+                  onClick={() => onSelectPlanet(planet.id)}
+                  className={`planet-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all duration-200 ${
+                    isSelected ? 'active' : ''
                   }`}
-                  variant="ghost"
-                  onClick={() => { onSelectPlanet(planet.id); setIsOpen(false); }}
                 >
-                  <span className="inline-block w-2.5 h-2.5 rounded-full mr-3 flex-shrink-0" style={{
-                    backgroundColor: planet.color,
-                    boxShadow: selectedPlanetId === planet.id ? `0 0 6px ${planet.color}80` : 'none'
-                  }} />
-                  <span className="truncate tracking-wide">{planet.name}</span>
-                  {selectedPlanetId === planet.id && <span className="ml-auto status-dot" />}
-                </Button>
-              ))}
-            </div>
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0 transition-all duration-300"
+                    style={{
+                      backgroundColor: planet.color,
+                      boxShadow: isSelected ? `0 0 8px ${planet.color}` : 'none',
+                    }}
+                  />
+                  <span className={`flex-1 text-xs tracking-wide font-body ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                    {planet.name}
+                  </span>
+                  {isSelected && (
+                    <Crosshair className="h-3 w-3 text-signal opacity-70 flex-shrink-0" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
+
+      {/* ── Mobile: floating button + slide drawer ─────────────── */}
+      <div className="md:hidden absolute top-4 right-4 z-30">
+        <button
+          onClick={() => setIsOpen(v => !v)}
+          className="info-panel rounded-xl w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-signal transition-colors"
+        >
+          {isOpen ? (
+            <ChevronRightIcon className="h-4 w-4" />
+          ) : (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="md:hidden absolute top-16 right-4 z-30 w-64 animate-fade-up">
+          <div className="info-panel rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-panel-border/60 flex items-center gap-2">
+              <span className="status-dot-signal" />
+              <span className="telemetry-label">Navigation</span>
+            </div>
+
+            <div className="p-3 space-y-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { onToggleSpaceView?.(); setIsOpen(false); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[0.65rem] tracking-widest uppercase font-mono border transition-all duration-200 ${
+                    isSpaceView
+                      ? 'bg-signal/15 border-signal/40 text-signal'
+                      : 'border-panel-border text-muted-foreground hover:text-signal hover:border-signal/30'
+                  }`}
+                >
+                  <RocketIcon className="h-3 w-3" />
+                  {isSpaceView ? 'Lock' : 'Free'}
+                </button>
+                <button
+                  onClick={() => { onOpenComparison?.(); setIsOpen(false); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[0.65rem] tracking-widest uppercase font-mono border border-panel-border text-muted-foreground hover:text-accent hover:border-accent/30 transition-all duration-200"
+                >
+                  <GitCompareArrows className="h-3 w-3" />
+                  Compare
+                </button>
+              </div>
+
+              <div className="space-y-0.5 max-h-64 overflow-y-auto">
+                {planets.map(planet => {
+                  const isSelected = planet.id === selectedPlanetId;
+                  return (
+                    <button
+                      key={planet.id}
+                      onClick={() => { onSelectPlanet(planet.id); setIsOpen(false); }}
+                      className={`planet-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left ${isSelected ? 'active' : ''}`}
+                    >
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: planet.color, boxShadow: isSelected ? `0 0 8px ${planet.color}` : 'none' }} />
+                      <span className={`flex-1 text-xs font-body ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>{planet.name}</span>
+                      {isSelected && <Crosshair className="h-3 w-3 text-signal opacity-70" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
