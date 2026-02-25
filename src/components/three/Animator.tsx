@@ -101,6 +101,17 @@ export const setupAnimation = ({
       reticleRef.current.rotation.y = simTime * 2;
     }
 
+    // Mission probes pulse
+    const missionGroup = scene.getObjectByName('missionPaths');
+    if (missionGroup) {
+      missionGroup.children.forEach((child) => {
+        if (child.name.startsWith('mission-probe-')) {
+          child.rotation.y = simTime * 2;
+          child.rotation.x = Math.sin(simTime) * 0.3;
+        }
+      });
+    }
+
     // Constellation drift
     const constGroup = scene.getObjectByName('constellations');
     if (constGroup) constGroup.rotation.y += 0.00005;

@@ -9,6 +9,8 @@ import AstronomerChat from '@/components/AstronomerChat';
 import { planets } from '@/data/planets';
 import { toast } from '@/components/ui/use-toast';
 import SupportChat from '@/components/SupportChat';
+import MissionCards from '@/components/MissionCards';
+import NeoTracker from '@/components/NeoTracker';
 
 const Index = () => {
   const [selectedPlanetId, setSelectedPlanetId] = useState('earth');
@@ -164,6 +166,12 @@ const Index = () => {
       {sceneReady && (
         <TimeLapseControls onTimeScaleChange={setTimeScale} />
       )}
+
+      {/* ── Mission Cards ────────────────────────────────── */}
+      <MissionCards />
+
+      {/* ── NEO Tracker ──────────────────────────────────── */}
+      <NeoTracker />
 
       {/* ── AI Astronomer ─────────────────────────────────── */}
       <AstronomerChat selectedPlanet={selectedPlanet} />
