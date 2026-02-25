@@ -5,6 +5,8 @@ import { createSkybox, createStars } from './three/SkyboxCreator';
 import { createLighting } from './three/LightingSystem';
 import { createSolarSystem, SolarSystemObjects } from './three/PlanetCreator';
 import { createConstellations } from './three/ConstellationRenderer';
+import { createMissionPaths, animateMissions } from './three/MissionRenderer';
+import { createHYGStarfield } from './three/HYGStarfield';
 import { cleanupResources } from './three/ResourceDisposer';
 import { setupAnimation, setupResizeHandler } from './three/Animator';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -103,8 +105,10 @@ const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highl
 
     createSkybox(scene);
     createStars(scene);
+    createHYGStarfield(scene);
     createLighting(scene);
     createConstellations(scene);
+    createMissionPaths(scene);
 
     const solarSystem = createSolarSystem(scene, planets, setIsLoading, onSceneReady);
     planetObjectsRef.current = solarSystem.planetObjects;
