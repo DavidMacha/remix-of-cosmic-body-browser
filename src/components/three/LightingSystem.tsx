@@ -1,48 +1,63 @@
 import * as THREE from 'three';
 
 export const createLighting = (scene: THREE.Scene) => {
-  // Ambient light for general illumination - slightly brighter for better visibility
-  const ambientLight = new THREE.AmbientLight(0x303050, 0.5);
+  // ── Generous ambient fill — no planet should ever feel "dark" ──
+  const ambientLight = new THREE.AmbientLight(0x8899bb, 1.2);
   scene.add(ambientLight);
-  
-  // Point light at the center (Sun) - high intensity, long range
-  const sunLight = new THREE.PointLight(0xfff5e0, 2.5, 2500);
+
+  // ── Sun point light — warm, powerful, long-range ──
+  const sunLight = new THREE.PointLight(0xfff8ee, 4.0, 3000, 0.8);
   sunLight.position.set(0, 0, 0);
-  sunLight.castShadow = false;
   scene.add(sunLight);
-  
-  // Create the Sun as a glowing sphere
+
+  // ── Secondary fill light from above-right (simulates reflected light) ──
+  const fillLight = new THREE.DirectionalLight(0x6688cc, 0.6);
+  fillLight.position.set(200, 150, 100);
+  scene.add(fillLight);
+
+  // ── Rim light from behind-below (edge definition) ──
+  const rimLight = new THREE.DirectionalLight(0x4466aa, 0.35);
+  rimLight.position.set(-100, -80, -200);
+  scene.add(rimLight);
+
+  // ── The Sun mesh — brilliant, luminous ──
   const sunGeometry = new THREE.SphereGeometry(25, 64, 64);
-  const sunMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffdd44,
-  });
-  
+  const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffee66 });
   const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+  sun.name = 'sun';
   scene.add(sun);
-  
-  // Inner glow layer
-  const glowGeometry = new THREE.SphereGeometry(28, 32, 32);
+
+  // Inner glow
+  const glowGeometry = new THREE.SphereGeometry(30, 32, 32);
   const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffaa00,
+    color: 0xffcc33,
     transparent: true,
-    opacity: 0.25,
+    opacity: 0.35,
     side: THREE.BackSide,
   });
-  const sunGlow = new THREE.Mesh(glowGeometry, glowMaterial);
-  scene.add(sunGlow);
+  scene.add(new THREE.Mesh(glowGeometry, glowMaterial));
 
-  // Outer corona
-  const coronaGeometry = new THREE.SphereGeometry(35, 32, 32);
-  const coronaMaterial = new THREE.MeshBasicMaterial({
+  // Mid corona
+  const coronaGeo = new THREE.SphereGeometry(38, 32, 32);
+  const coronaMat = new THREE.MeshBasicMaterial({
+    color: 0xff8800,
+    transparent: true,
+    opacity: 0.12,
+    side: THREE.BackSide,
+  });
+  scene.add(new THREE.Mesh(coronaGeo, coronaMat));
+
+  // Outer halo
+  const haloGeo = new THREE.SphereGeometry(50, 32, 32);
+  const haloMat = new THREE.MeshBasicMaterial({
     color: 0xff6600,
     transparent: true,
-    opacity: 0.08,
+    opacity: 0.04,
     side: THREE.BackSide,
   });
-  const corona = new THREE.Mesh(coronaGeometry, coronaMaterial);
-  scene.add(corona);
-  
-  // Hemisphere light for subtle ambient color variation
-  const hemiLight = new THREE.HemisphereLight(0x4466aa, 0x111122, 0.3);
+  scene.add(new THREE.Mesh(haloGeo, haloMat));
+
+  // Hemisphere light for gentle sky/ground color differentiation
+  const hemiLight = new THREE.HemisphereLight(0x6688cc, 0x222244, 0.5);
   scene.add(hemiLight);
 };

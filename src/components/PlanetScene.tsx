@@ -106,7 +106,7 @@ const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highl
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     (renderer as any).colorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.8;
     rendererRef.current = renderer;
 
     mountRef.current.appendChild(renderer.domElement);
