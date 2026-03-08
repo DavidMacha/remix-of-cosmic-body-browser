@@ -267,16 +267,18 @@ export const createSolarSystem = (
     loadPlanetTexture(planet.id, loader, (tex) => {
       const mat = planetMesh.material as THREE.MeshStandardMaterial;
 
-      // Enhance material with the loaded texture
       mat.map = tex;
-      mat.roughness = planet.id === 'earth' ? 0.6 : planet.id === 'venus' ? 0.5 : 0.75;
+      mat.roughness = planet.id === 'earth' ? 0.45 : planet.id === 'venus' ? 0.4 : 0.55;
       mat.metalness = 0.0;
 
-      // Emissive self-glow for gas giants
-      if (planet.id === 'jupiter' || planet.id === 'saturn') {
-        mat.emissive = new THREE.Color(0x110800);
-        mat.emissiveIntensity = 0.15;
-      }
+      // All planets get a subtle self-illumination so they're never pitch black
+      const emissiveColors: Record<string, number> = {
+        mercury: 0x1a1510, venus: 0x1a1508, earth: 0x081018,
+        mars: 0x180a04, jupiter: 0x141008, saturn: 0x141208,
+        uranus: 0x081418, neptune: 0x060818,
+      };
+      mat.emissive = new THREE.Color(emissiveColors[planet.id] || 0x101010);
+      mat.emissiveIntensity = 0.35;
 
       mat.needsUpdate = true;
 
