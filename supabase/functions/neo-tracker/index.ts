@@ -2,8 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+// In-memory cache: 5 minutes
+let cache: { data: any; ts: number } | null = null;
+const CACHE_TTL = 5 * 60 * 1000;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,7 +15,13 @@ serve(async (req) => {
   }
 
   try {
-    // NASA NeoWs API — DEMO_KEY is rate-limited but free
+    // Return cached response if fresh
+    if (cache && Date.now() - cache.ts < CACHE_TTL) {
+      return new Response(JSON.stringify(cache.data), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'HIT' },
+      });
+    }
+
     const today = new Date();
     const endDate = new Date(today);
     endDate.setDate(endDate.getDate() + 7);
@@ -29,7 +39,6 @@ serve(async (req) => {
 
     const data = await response.json();
 
-    // Flatten all NEOs across dates and sort by miss distance
     const allNeos: any[] = [];
     for (const dateKey of Object.keys(data.near_earth_objects || {})) {
       for (const neo of data.near_earth_objects[dateKey]) {
@@ -51,12 +60,14 @@ serve(async (req) => {
       }
     }
 
-    // Sort by miss distance (closest first), take top 10
     allNeos.sort((a, b) => a.miss_distance_km - b.miss_distance_km);
     const top10 = allNeos.slice(0, 10);
 
-    return new Response(JSON.stringify({ neos: top10, element_count: data.element_count }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const responseData = { neos: top10, element_count: data.element_count };
+    cache = { data: responseData, ts: Date.now() };
+
+    return new Response(JSON.stringify(responseData), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'MISS' },
     });
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {

@@ -5,12 +5,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+// In-memory cache: 5 minutes
+let cache: { data: any; ts: number } | null = null;
+const CACHE_TTL = 5 * 60 * 1000;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Return cached response if fresh
+    if (cache && Date.now() - cache.ts < CACHE_TTL) {
+      return new Response(JSON.stringify(cache.data), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'HIT' },
+      });
+    }
+
     const apiKey = Deno.env.get('NASA_API_KEY') || 'DEMO_KEY';
     const now = new Date();
     const startDate = new Date(now);
@@ -18,7 +29,6 @@ serve(async (req) => {
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = now.toISOString().split('T')[0];
 
-    // Fetch flares and CMEs in parallel
     const [flrRes, cmeRes] = await Promise.all([
       fetch(`https://api.nasa.gov/DONKI/FLR?startDate=${startStr}&endDate=${endStr}&api_key=${apiKey}`),
       fetch(`https://api.nasa.gov/DONKI/CME?startDate=${startStr}&endDate=${endStr}&api_key=${apiKey}`),
@@ -29,7 +39,6 @@ serve(async (req) => {
 
     const events: any[] = [];
 
-    // Process flares (latest 15)
     const recentFlares = Array.isArray(flrData) ? flrData.slice(-15) : [];
     for (const flr of recentFlares) {
       events.push({
@@ -43,7 +52,6 @@ serve(async (req) => {
       });
     }
 
-    // Process CMEs (latest 10)
     const recentCMEs = Array.isArray(cmeData) ? cmeData.slice(-10) : [];
     for (const cme of recentCMEs) {
       const analysis = cme.cmeAnalyses?.[0];
@@ -57,11 +65,13 @@ serve(async (req) => {
       });
     }
 
-    // Sort by time descending
     events.sort((a, b) => new Date(b.beginTime).getTime() - new Date(a.beginTime).getTime());
 
-    return new Response(JSON.stringify({ events }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const responseData = { events };
+    cache = { data: responseData, ts: Date.now() };
+
+    return new Response(JSON.stringify(responseData), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'MISS' },
     });
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
