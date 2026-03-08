@@ -1,19 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import PlanetScene from '@/components/PlanetScene';
 import PlanetInfo from '@/components/PlanetInfo';
 import PlanetNavigation from '@/components/PlanetNavigation';
 import PlanetSearch from '@/components/PlanetSearch';
-import PlanetComparison from '@/components/PlanetComparison';
 import TimeLapseControls from '@/components/TimeLapseControls';
-import AstronomerChat from '@/components/AstronomerChat';
-import SolarActivityMonitor from '@/components/SolarActivityMonitor';
-import PlanetSurfaceOverlay from '@/components/PlanetSurfaceOverlay';
+import SpaceToolbar from '@/components/SpaceToolbar';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { planets } from '@/data/planets';
 import { toast } from '@/components/ui/use-toast';
-import SupportChat from '@/components/SupportChat';
-import MissionCards from '@/components/MissionCards';
-import NeoTracker from '@/components/NeoTracker';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+
+// Lazy-loaded heavy components
+const PlanetComparison = lazy(() => import('@/components/PlanetComparison'));
+const AstronomerChat = lazy(() => import('@/components/AstronomerChat'));
+const PlanetSurfaceOverlay = lazy(() => import('@/components/PlanetSurfaceOverlay'));
 
 const Index = () => {
   const [selectedPlanetId, setSelectedPlanetId] = useState('earth');
@@ -103,17 +103,22 @@ const Index = () => {
         onHighlightPlanet={setHighlightPlanetId}
       />
 
-      {/* ── 3D Scene ─────────────────────────────────────────── */}
-      <PlanetScene
-        planet={selectedPlanet}
-        planets={planets}
-        onSceneReady={handleSceneReady}
-        isSpaceView={isSpaceView}
-        highlightPlanetId={highlightPlanetId}
-        timeScale={timeScale}
-        closeUpPlanetId={closeUpPlanetId}
-        onCloseUpExit={() => setCloseUpPlanetId(null)}
-      />
+      {/* ── Unified toolbar (Solar / NEO / Missions) ─────── */}
+      <SpaceToolbar />
+
+      {/* ── 3D Scene with Error Boundary ─────────────────── */}
+      <ErrorBoundary fallbackMessage="3D Scene Error">
+        <PlanetScene
+          planet={selectedPlanet}
+          planets={planets}
+          onSceneReady={handleSceneReady}
+          isSpaceView={isSpaceView}
+          highlightPlanetId={highlightPlanetId}
+          timeScale={timeScale}
+          closeUpPlanetId={closeUpPlanetId}
+          onCloseUpExit={() => setCloseUpPlanetId(null)}
+        />
+      </ErrorBoundary>
 
       {/* Close-up exit button */}
       {closeUpPlanetId && (
@@ -128,10 +133,12 @@ const Index = () => {
 
       {/* Planet surface overlay in close-up mode */}
       {closeUpPlanetId && (
-        <PlanetSurfaceOverlay
-          planet={planets.find(p => p.id === closeUpPlanetId) || selectedPlanet}
-          onClose={() => setCloseUpPlanetId(null)}
-        />
+        <Suspense fallback={null}>
+          <PlanetSurfaceOverlay
+            planet={planets.find(p => p.id === closeUpPlanetId) || selectedPlanet}
+            onClose={() => setCloseUpPlanetId(null)}
+          />
+        </Suspense>
       )}
 
       {/* ── Planet info panel ────────────────────────────────── */}
@@ -148,37 +155,27 @@ const Index = () => {
         onCloseUp={(id) => setCloseUpPlanetId(id)}
       />
 
-      {/* ── Comparison ───────────────────────────────────────── */}
-      <PlanetComparison
-        planets={planets}
-        isOpen={isComparisonOpen}
-        onClose={() => setIsComparisonOpen(false)}
-      />
+      {/* ── Comparison (lazy) ────────────────────────────────── */}
+      <Suspense fallback={null}>
+        <PlanetComparison
+          planets={planets}
+          isOpen={isComparisonOpen}
+          onClose={() => setIsComparisonOpen(false)}
+        />
+      </Suspense>
 
       {/* ── Loading overlay ──────────────────────────────────── */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/90 z-20 backdrop-blur-sm">
           <div className="text-center space-y-5 animate-fade-up">
-            {/* Pulsing planet orb */}
             <div className="relative mx-auto w-16 h-16">
-              <div
-                className="absolute inset-0 rounded-full animate-ping opacity-20"
-                style={{ backgroundColor: selectedPlanet.color }}
-              />
-              <div
-                className="absolute inset-2 rounded-full animate-pulse"
-                style={{ backgroundColor: selectedPlanet.color, boxShadow: `0 0 30px ${selectedPlanet.color}60` }}
-              />
+              <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: selectedPlanet.color }} />
+              <div className="absolute inset-2 rounded-full animate-pulse" style={{ backgroundColor: selectedPlanet.color, boxShadow: `0 0 30px ${selectedPlanet.color}60` }} />
             </div>
-
             <div>
-              <div className="display-heading text-xl text-foreground tracking-tight">
-                Acquiring {selectedPlanet.name}
-              </div>
+              <div className="display-heading text-xl text-foreground tracking-tight">Acquiring {selectedPlanet.name}</div>
               <p className="telemetry-label mt-2">Initializing telemetry systems...</p>
             </div>
-
-            {/* Scan bar */}
             <div className="w-56 h-px bg-panel-border mx-auto overflow-hidden relative rounded-full">
               <div className="scan-line absolute inset-0" />
             </div>
@@ -188,12 +185,8 @@ const Index = () => {
 
       {/* ── Bottom-right timestamp ───────────────────────────── */}
       <div className="absolute bottom-5 right-5 z-10 hidden md:block text-right">
-        <p className="telemetry-label">
-          Mission Time · {new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC
-        </p>
-        <p className="telemetry-label mt-0.5 opacity-50">
-          {selectedPlanet.name.toUpperCase()} · LOCK
-        </p>
+        <p className="telemetry-label">Mission Time · {new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC</p>
+        <p className="telemetry-label mt-0.5 opacity-50">{selectedPlanet.name.toUpperCase()} · LOCK</p>
       </div>
 
       {/* ── Corner HUD brackets ──────────────────────────────── */}
@@ -203,23 +196,12 @@ const Index = () => {
       <div className="absolute bottom-4 right-4 w-6 h-6 border-b border-r border-signal/25 pointer-events-none" />
 
       {/* ── Time-lapse controls ───────────────────────────── */}
-      {sceneReady && (
-        <TimeLapseControls onTimeScaleChange={setTimeScale} />
-      )}
+      {sceneReady && <TimeLapseControls onTimeScaleChange={setTimeScale} />}
 
-      {/* ── Mission Cards ────────────────────────────────── */}
-      <MissionCards />
-
-      {/* ── NEO Tracker ──────────────────────────────────── */}
-      <NeoTracker />
-
-      {/* ── Solar Activity Monitor ───────────────────────── */}
-      <SolarActivityMonitor />
-
-      {/* ── AI Astronomer ─────────────────────────────────── */}
-      <AstronomerChat selectedPlanet={selectedPlanet} />
-
-      <SupportChat />
+      {/* ── AI Astronomer (lazy) ───────────────────────────── */}
+      <Suspense fallback={null}>
+        <AstronomerChat selectedPlanet={selectedPlanet} />
+      </Suspense>
     </div>
   );
 };
