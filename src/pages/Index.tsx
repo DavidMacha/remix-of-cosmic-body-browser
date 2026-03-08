@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PlanetScene from '@/components/PlanetScene';
 import PlanetInfo from '@/components/PlanetInfo';
 import PlanetNavigation from '@/components/PlanetNavigation';
@@ -7,11 +7,13 @@ import PlanetComparison from '@/components/PlanetComparison';
 import TimeLapseControls from '@/components/TimeLapseControls';
 import AstronomerChat from '@/components/AstronomerChat';
 import SolarActivityMonitor from '@/components/SolarActivityMonitor';
+import PlanetSurfaceOverlay from '@/components/PlanetSurfaceOverlay';
 import { planets } from '@/data/planets';
 import { toast } from '@/components/ui/use-toast';
 import SupportChat from '@/components/SupportChat';
 import MissionCards from '@/components/MissionCards';
 import NeoTracker from '@/components/NeoTracker';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 const Index = () => {
   const [selectedPlanetId, setSelectedPlanetId] = useState('earth');
@@ -24,6 +26,7 @@ const Index = () => {
   const [closeUpPlanetId, setCloseUpPlanetId] = useState<string | null>(null);
 
   const selectedPlanet = planets.find(p => p.id === selectedPlanetId) || planets[2];
+  const planetIds = planets.map(p => p.id);
 
   const handleSelectPlanet = (id: string) => {
     if (id === selectedPlanetId) return;
@@ -31,6 +34,19 @@ const Index = () => {
     setSceneReady(false);
     setSelectedPlanetId(id);
   };
+
+  const handleSetTimeScale = useCallback((fnOrVal: number | ((prev: number) => number)) => {
+    setTimeScale(prev => typeof fnOrVal === 'function' ? fnOrVal(prev) : fnOrVal);
+  }, []);
+
+  useKeyboardShortcuts({
+    planetIds,
+    selectedPlanetId,
+    onSelectPlanet: handleSelectPlanet,
+    closeUpPlanetId,
+    onCloseUp: setCloseUpPlanetId,
+    onTimeScaleChange: handleSetTimeScale,
+  });
 
   const handleSceneReady = () => {
     setSceneReady(true);
@@ -106,8 +122,16 @@ const Index = () => {
           className="absolute top-20 left-1/2 -translate-x-1/2 z-30 info-panel rounded-xl px-5 py-2.5 flex items-center gap-2 animate-fade-up hover:bg-signal/10 transition-all"
         >
           <span className="telemetry-label text-signal">Close-Up: {planets.find(p => p.id === closeUpPlanetId)?.name}</span>
-          <span className="telemetry-label text-muted-foreground">· Click to exit</span>
+          <span className="telemetry-label text-muted-foreground">· ESC or click to exit</span>
         </button>
+      )}
+
+      {/* Planet surface overlay in close-up mode */}
+      {closeUpPlanetId && (
+        <PlanetSurfaceOverlay
+          planet={planets.find(p => p.id === closeUpPlanetId) || selectedPlanet}
+          onClose={() => setCloseUpPlanetId(null)}
+        />
       )}
 
       {/* ── Planet info panel ────────────────────────────────── */}
