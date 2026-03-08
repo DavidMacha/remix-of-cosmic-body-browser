@@ -76,6 +76,11 @@ const loadPlanetTexture = (
     url,
     (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.anisotropy = 16;
       onLoad(tex);
     },
     undefined,
