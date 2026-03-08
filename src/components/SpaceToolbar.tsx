@@ -92,7 +92,7 @@ const SpaceToolbar = () => {
   const cmes = solarEvents.filter(e => e.type === 'CME');
 
   return (
-    <div className="absolute top-6 left-56 z-20 hidden md:flex items-start gap-2">
+    <div className="absolute top-6 left-56 z-20 hidden md:flex flex-col items-start gap-2">
       {/* ── Toolbar buttons ── */}
       <div className="info-panel rounded-xl flex items-center gap-0.5 p-1">
         <ToolbarBtn
