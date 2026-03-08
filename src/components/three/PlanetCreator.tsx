@@ -185,9 +185,9 @@ export const createKeplerOrbitPath = (
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
   const material = new THREE.LineBasicMaterial({
-    color: 0x336688,
+    color: 0x4488aa,
     transparent: true,
-    opacity: 0.25,
+    opacity: 0.18,
   });
   return new THREE.Line(geometry, material);
 };
