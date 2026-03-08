@@ -53,92 +53,39 @@ const localTextures: Record<string, string> = {
   neptune: neptuneTex,
 };
 
-const generateFallbackTexture = (planetId: string, size: number = 512): THREE.CanvasTexture => {
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size / 2;
-  const ctx = canvas.getContext('2d')!;
-  const colors = planetColorSchemes[planetId] || { base: '#888888', accent: '#AAAAAA', detail: '#666666' };
-  ctx.fillStyle = colors.base;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  if (planetId === 'earth') {
-    for (let i = 0; i < 8; i++) {
-      ctx.fillStyle = colors.accent;
-      ctx.beginPath();
-      ctx.ellipse(Math.random() * canvas.width, canvas.height * 0.2 + Math.random() * canvas.height * 0.6, 30 + Math.random() * 60, 20 + Math.random() * 40, Math.random() * Math.PI, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = '#E8E8F0';
-    ctx.fillRect(0, 0, canvas.width, 15);
-    ctx.fillRect(0, canvas.height - 15, canvas.width, 15);
-  } else if (planetId === 'jupiter' || planetId === 'saturn') {
-    const bandCount = planetId === 'jupiter' ? 12 : 8;
-    for (let i = 0; i < bandCount; i++) {
-      ctx.fillStyle = i % 2 === 0 ? colors.accent : colors.detail;
-      ctx.globalAlpha = 0.6;
-      ctx.fillRect(0, (i / bandCount) * canvas.height, canvas.width, canvas.height / bandCount);
-    }
-    ctx.globalAlpha = 1;
-    if (planetId === 'jupiter') {
-      ctx.fillStyle = '#C06040';
-      ctx.beginPath();
-      ctx.ellipse(canvas.width * 0.6, canvas.height * 0.55, 30, 18, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  } else if (planetId === 'mars') {
-    for (let i = 0; i < 15; i++) {
-      ctx.fillStyle = colors.detail;
-      ctx.globalAlpha = 0.4;
-      ctx.beginPath();
-      ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 5 + Math.random() * 20, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#E0D8D0';
-    ctx.fillRect(0, 0, canvas.width, 12);
-    ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
-  return texture;
-};
-
 /**
- * Load a NASA texture with fallback chain:
- * 1. Solar System Scope 2K texture
- * 2. Wikipedia high-res image
- * 3. Procedural canvas texture
+ * Load planet texture from local bundled assets.
  */
 const loadPlanetTexture = (
   planetId: string,
   loader: THREE.TextureLoader,
   onLoad: (tex: THREE.Texture) => void
 ) => {
-  const primaryUrl = nasaTextureUrls[planetId];
-  const fallbackUrl = nasaFallbackUrls[planetId];
+  const url = localTextures[planetId];
+  if (!url) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 128;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#666';
+    ctx.fillRect(0, 0, 256, 128);
+    onLoad(new THREE.CanvasTexture(canvas));
+    return;
+  }
 
   loader.load(
-    primaryUrl,
+    url,
     (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
       onLoad(tex);
     },
     undefined,
     () => {
-      // Primary failed — try Wikipedia fallback
-      loader.load(
-        fallbackUrl,
-        (tex) => {
-          tex.colorSpace = THREE.SRGBColorSpace;
-          onLoad(tex);
-        },
-        undefined,
-        () => {
-          // Both failed — use procedural canvas texture
-          onLoad(generateFallbackTexture(planetId));
-        }
-      );
+      const canvas = document.createElement('canvas');
+      canvas.width = 256; canvas.height = 128;
+      const ctx = canvas.getContext('2d')!;
+      ctx.fillStyle = '#888';
+      ctx.fillRect(0, 0, 256, 128);
+      onLoad(new THREE.CanvasTexture(canvas));
     }
   );
 };
