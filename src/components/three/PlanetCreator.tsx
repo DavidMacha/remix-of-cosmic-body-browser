@@ -2,13 +2,22 @@ import * as THREE from 'three';
 import { PlanetData } from '@/data/planets';
 import { orbitalElements } from '@/data/keplerOrbits';
 
+// Local high-quality planet textures (bundled via Vite)
+import mercuryTex from '@/assets/textures/mercury.jpg';
+import venusTex from '@/assets/textures/venus.jpg';
+import earthTex from '@/assets/textures/earth.jpg';
+import marsTex from '@/assets/textures/mars.jpg';
+import jupiterTex from '@/assets/textures/jupiter.jpg';
+import saturnTex from '@/assets/textures/saturn.jpg';
+import uranusTex from '@/assets/textures/uranus.jpg';
+import neptuneTex from '@/assets/textures/neptune.jpg';
+
 interface PlanetObject {
   mesh: THREE.Mesh;
   orbitMesh?: THREE.Line;
   moons?: THREE.Mesh[];
   moonOrbitMeshes?: THREE.Line[];
   ringsMesh?: THREE.Mesh;
-  // Kepler orbital parameters for animation
   semiMajorAxis: number;
   eccentricity: number;
   inclination: number;
@@ -23,7 +32,6 @@ export interface SolarSystemObjects {
   comets?: THREE.Group;
 }
 
-// Moon data for each planet
 const moonData: { [key: string]: { count: number; distance: number; size: number } } = {
   earth: { count: 1, distance: 3.0, size: 0.20 },
   mars: { count: 2, distance: 2.5, size: 0.10 },
@@ -33,40 +41,16 @@ const moonData: { [key: string]: { count: number; distance: number; size: number
   neptune: { count: 6, distance: 5.0, size: 0.13 }
 };
 
-// Real NASA texture URLs from Solar System Scope (public, high-res)
-const nasaTextureUrls: { [key: string]: string } = {
-  mercury: 'https://www.solarsystemscope.com/textures/download/2k_mercury.jpg',
-  venus:   'https://www.solarsystemscope.com/textures/download/2k_venus_surface.jpg',
-  earth:   'https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg',
-  mars:    'https://www.solarsystemscope.com/textures/download/2k_mars.jpg',
-  jupiter: 'https://www.solarsystemscope.com/textures/download/2k_jupiter.jpg',
-  saturn:  'https://www.solarsystemscope.com/textures/download/2k_saturn.jpg',
-  uranus:  'https://www.solarsystemscope.com/textures/download/2k_uranus.jpg',
-  neptune: 'https://www.solarsystemscope.com/textures/download/2k_neptune.jpg',
-};
-
-// NASA CDN fallback textures
-const nasaFallbackUrls: { [key: string]: string } = {
-  mercury: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Mercury_in_true_color.jpg/800px-Mercury_in_true_color.jpg',
-  venus:   'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Venus-real_color.jpg/800px-Venus-real_color.jpg',
-  earth:   'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/The_Blue_Marble_%28remastered%29.jpg/800px-The_Blue_Marble_%28remastered%29.jpg',
-  mars:    'https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/OSIRIS_Mars_true_color.jpg/800px-OSIRIS_Mars_true_color.jpg',
-  jupiter: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Jupiter_and_its_shrunken_Great_Red_Spot.jpg/800px-Jupiter_and_its_shrunken_Great_Red_Spot.jpg',
-  saturn:  'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Saturn_during_Equinox.jpg/800px-Saturn_during_Equinox.jpg',
-  uranus:  'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Uranus2.jpg/800px-Uranus2.jpg',
-  neptune: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg/800px-Neptune_-_Voyager_2_%2829347980845%29_flatten_crop.jpg',
-};
-
-// Planet color maps for procedural texture fallback
-const planetColorSchemes: { [key: string]: { base: string; accent: string; detail: string } } = {
-  mercury: { base: '#8C7E6F', accent: '#A59585', detail: '#6B5E50' },
-  venus:   { base: '#D4A860', accent: '#E8C87A', detail: '#B89040' },
-  earth:   { base: '#4A7AB5', accent: '#3D9540', detail: '#E8DCC0' },
-  mars:    { base: '#C1582A', accent: '#A04020', detail: '#D4783E' },
-  jupiter: { base: '#C4A56A', accent: '#D4B880', detail: '#A08050' },
-  saturn:  { base: '#D4C8A0', accent: '#E0D4B0', detail: '#B8AC80' },
-  uranus:  { base: '#88C8D8', accent: '#A0D8E8', detail: '#70B0C0' },
-  neptune: { base: '#3050B0', accent: '#4060C0', detail: '#2040A0' },
+// Local texture map — guaranteed to load, no CORS issues
+const localTextures: Record<string, string> = {
+  mercury: mercuryTex,
+  venus: venusTex,
+  earth: earthTex,
+  mars: marsTex,
+  jupiter: jupiterTex,
+  saturn: saturnTex,
+  uranus: uranusTex,
+  neptune: neptuneTex,
 };
 
 const generateFallbackTexture = (planetId: string, size: number = 512): THREE.CanvasTexture => {
