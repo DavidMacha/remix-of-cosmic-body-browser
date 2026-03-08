@@ -26,6 +26,7 @@ const Index = () => {
   const [closeUpPlanetId, setCloseUpPlanetId] = useState<string | null>(null);
 
   const selectedPlanet = planets.find(p => p.id === selectedPlanetId) || planets[2];
+  const planetIds = planets.map(p => p.id);
 
   const handleSelectPlanet = (id: string) => {
     if (id === selectedPlanetId) return;
@@ -33,6 +34,19 @@ const Index = () => {
     setSceneReady(false);
     setSelectedPlanetId(id);
   };
+
+  const handleSetTimeScale = useCallback((fnOrVal: number | ((prev: number) => number)) => {
+    setTimeScale(prev => typeof fnOrVal === 'function' ? fnOrVal(prev) : fnOrVal);
+  }, []);
+
+  useKeyboardShortcuts({
+    planetIds,
+    selectedPlanetId,
+    onSelectPlanet: handleSelectPlanet,
+    closeUpPlanetId,
+    onCloseUp: setCloseUpPlanetId,
+    onTimeScaleChange: handleSetTimeScale,
+  });
 
   const handleSceneReady = () => {
     setSceneReady(true);
