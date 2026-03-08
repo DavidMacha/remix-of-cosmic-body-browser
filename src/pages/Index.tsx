@@ -122,8 +122,16 @@ const Index = () => {
           className="absolute top-20 left-1/2 -translate-x-1/2 z-30 info-panel rounded-xl px-5 py-2.5 flex items-center gap-2 animate-fade-up hover:bg-signal/10 transition-all"
         >
           <span className="telemetry-label text-signal">Close-Up: {planets.find(p => p.id === closeUpPlanetId)?.name}</span>
-          <span className="telemetry-label text-muted-foreground">· Click to exit</span>
+          <span className="telemetry-label text-muted-foreground">· ESC or click to exit</span>
         </button>
+      )}
+
+      {/* Planet surface overlay in close-up mode */}
+      {closeUpPlanetId && (
+        <PlanetSurfaceOverlay
+          planet={planets.find(p => p.id === closeUpPlanetId) || selectedPlanet}
+          onClose={() => setCloseUpPlanetId(null)}
+        />
       )}
 
       {/* ── Planet info panel ────────────────────────────────── */}
