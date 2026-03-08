@@ -57,36 +57,37 @@ const PlanetNavigation = ({
             {planets.map(planet => {
               const isSelected = planet.id === selectedPlanetId;
               return (
-                <button
-                  key={planet.id}
-                  onClick={() => onSelectPlanet(planet.id)}
-                  className={`planet-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all duration-200 ${
-                    isSelected ? 'active' : ''
-                  }`}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full flex-shrink-0 transition-all duration-300"
-                    style={{
-                      backgroundColor: planet.color,
-                      boxShadow: isSelected ? `0 0 8px ${planet.color}` : 'none',
-                    }}
-                  />
-                  <span className={`flex-1 text-xs tracking-wide font-body ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-                    {planet.name}
-                  </span>
+                <div key={planet.id} className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => onSelectPlanet(planet.id)}
+                    className={`planet-btn flex-1 flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all duration-200 ${
+                      isSelected ? 'active' : ''
+                    }`}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0 transition-all duration-300"
+                      style={{
+                        backgroundColor: planet.color,
+                        boxShadow: isSelected ? `0 0 8px ${planet.color}` : 'none',
+                      }}
+                    />
+                    <span className={`flex-1 text-xs tracking-wide font-body ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                      {planet.name}
+                    </span>
+                    {isSelected && (
+                      <Crosshair className="h-3 w-3 text-signal opacity-70 flex-shrink-0" />
+                    )}
+                  </button>
                   {isSelected && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); onCloseUp?.(planet.id); }}
-                      className="p-0.5 rounded hover:bg-signal/20 text-signal/60 hover:text-signal transition-colors"
+                      onClick={() => onCloseUp?.(planet.id)}
+                      className="p-1.5 rounded-lg hover:bg-signal/20 text-signal/60 hover:text-signal transition-colors"
                       title="Close-up view"
                     >
                       <Eye className="h-3 w-3" />
                     </button>
                   )}
-                  {isSelected && (
-                    <Crosshair className="h-3 w-3 text-signal opacity-70 flex-shrink-0" />
-                  )}
-                </button>
+                </div>
               );
             })}
           </div>
