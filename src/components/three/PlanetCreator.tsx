@@ -227,11 +227,13 @@ export const createSolarSystem = (
     const planetScale = planetScales[planet.id] || planet.scale * 2.0;
     const geometry = new THREE.SphereGeometry(planetScale, 64, 64);
 
-    // Placeholder material while texture loads
+    // Placeholder material while texture loads — bright enough to see
     const material = new THREE.MeshStandardMaterial({
       color: new THREE.Color(planet.color),
-      roughness: 0.7,
-      metalness: 0.05,
+      roughness: 0.55,
+      metalness: 0.0,
+      emissive: new THREE.Color(planet.color),
+      emissiveIntensity: 0.08,
     });
 
     const planetMesh = new THREE.Mesh(geometry, material);
