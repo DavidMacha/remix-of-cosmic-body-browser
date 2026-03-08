@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PlanetScene from '@/components/PlanetScene';
 import PlanetInfo from '@/components/PlanetInfo';
 import PlanetNavigation from '@/components/PlanetNavigation';
@@ -7,11 +7,13 @@ import PlanetComparison from '@/components/PlanetComparison';
 import TimeLapseControls from '@/components/TimeLapseControls';
 import AstronomerChat from '@/components/AstronomerChat';
 import SolarActivityMonitor from '@/components/SolarActivityMonitor';
+import PlanetSurfaceOverlay from '@/components/PlanetSurfaceOverlay';
 import { planets } from '@/data/planets';
 import { toast } from '@/components/ui/use-toast';
 import SupportChat from '@/components/SupportChat';
 import MissionCards from '@/components/MissionCards';
 import NeoTracker from '@/components/NeoTracker';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 const Index = () => {
   const [selectedPlanetId, setSelectedPlanetId] = useState('earth');
