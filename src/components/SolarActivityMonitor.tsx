@@ -45,7 +45,7 @@ const SolarActivityMonitor = () => {
   const cmes = events.filter(e => e.type === 'CME');
 
   return (
-    <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 hidden md:block">
+    <div className="absolute top-6 left-72 z-20 hidden md:block">
       <button
         onClick={() => setIsOpen(v => !v)}
         className="info-panel rounded-xl px-4 py-2.5 flex items-center gap-2.5 hover:bg-solar/5 transition-all duration-200 group"
