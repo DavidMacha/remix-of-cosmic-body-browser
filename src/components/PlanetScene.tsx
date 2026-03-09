@@ -138,6 +138,7 @@ const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highl
       reticleRef,
       getTimeScale: () => timeScaleRef.current,
       getCloseUpPlanetId: () => closeUpPlanetIdRef.current,
+      getSelectedPlanetId: () => selectedPlanetIdRef.current,
     });
 
     frameIdRef.current = frameId;

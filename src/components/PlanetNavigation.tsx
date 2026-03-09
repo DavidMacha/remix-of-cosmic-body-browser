@@ -1,5 +1,5 @@
 import { PlanetData } from '@/data/planets';
-import { RocketIcon, GitCompareArrows, ChevronRightIcon, Crosshair, Eye } from 'lucide-react';
+import { RocketIcon, GitCompareArrows, ChevronRightIcon, Crosshair, Eye, Sun, AlertTriangle, Satellite } from 'lucide-react';
 import { useState } from 'react';
 
 interface PlanetNavigationProps {
@@ -16,6 +16,7 @@ const PlanetNavigation = ({
   planets, selectedPlanetId, onSelectPlanet, onToggleSpaceView, isSpaceView = false, onOpenComparison, onCloseUp
 }: PlanetNavigationProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'planets' | 'tools'>('planets');
 
   return (
     <>
@@ -111,57 +112,95 @@ const PlanetNavigation = ({
       </div>
 
       {isOpen && (
-        <div className="md:hidden absolute top-16 right-4 z-30 w-64 animate-fade-up">
+        <div className="md:hidden absolute top-16 right-4 z-30 w-72 animate-fade-up">
           <div className="info-panel rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-panel-border/60 flex items-center gap-2">
-              <span className="status-dot-signal" />
-              <span className="telemetry-label">Navigation</span>
+            {/* Tab bar */}
+            <div className="flex border-b border-panel-border/60">
+              <button
+                onClick={() => setMobileTab('planets')}
+                className={`flex-1 px-3 py-2.5 text-[0.65rem] tracking-widest uppercase font-mono flex items-center justify-center gap-1.5 transition-all ${
+                  mobileTab === 'planets' ? 'text-signal border-b-2 border-signal' : 'text-muted-foreground'
+                }`}
+              >
+                <Crosshair className="h-3 w-3" /> Planets
+              </button>
+              <button
+                onClick={() => setMobileTab('tools')}
+                className={`flex-1 px-3 py-2.5 text-[0.65rem] tracking-widest uppercase font-mono flex items-center justify-center gap-1.5 transition-all ${
+                  mobileTab === 'tools' ? 'text-signal border-b-2 border-signal' : 'text-muted-foreground'
+                }`}
+              >
+                <Satellite className="h-3 w-3" /> Tools
+              </button>
             </div>
 
-            <div className="p-3 space-y-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { onToggleSpaceView?.(); setIsOpen(false); }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[0.65rem] tracking-widest uppercase font-mono border transition-all duration-200 ${
-                    isSpaceView
-                      ? 'bg-signal/15 border-signal/40 text-signal'
-                      : 'border-panel-border text-muted-foreground hover:text-signal hover:border-signal/30'
-                  }`}
-                >
-                  <RocketIcon className="h-3 w-3" />
-                  {isSpaceView ? 'Lock' : 'Free'}
-                </button>
-                <button
-                  onClick={() => { onOpenComparison?.(); setIsOpen(false); }}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[0.65rem] tracking-widest uppercase font-mono border border-panel-border text-muted-foreground hover:text-accent hover:border-accent/30 transition-all duration-200"
-                >
-                  <GitCompareArrows className="h-3 w-3" />
-                  Compare
-                </button>
-              </div>
+            {mobileTab === 'planets' && (
+              <div className="p-3 space-y-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { onToggleSpaceView?.(); setIsOpen(false); }}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[0.65rem] tracking-widest uppercase font-mono border transition-all duration-200 ${
+                      isSpaceView
+                        ? 'bg-signal/15 border-signal/40 text-signal'
+                        : 'border-panel-border text-muted-foreground hover:text-signal hover:border-signal/30'
+                    }`}
+                  >
+                    <RocketIcon className="h-3 w-3" />
+                    {isSpaceView ? 'Lock' : 'Free'}
+                  </button>
+                  <button
+                    onClick={() => { onOpenComparison?.(); setIsOpen(false); }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[0.65rem] tracking-widest uppercase font-mono border border-panel-border text-muted-foreground hover:text-accent hover:border-accent/30 transition-all duration-200"
+                  >
+                    <GitCompareArrows className="h-3 w-3" />
+                    Compare
+                  </button>
+                </div>
 
-              <div className="space-y-0.5 max-h-64 overflow-y-auto">
-                {planets.map(planet => {
-                  const isSelected = planet.id === selectedPlanetId;
-                  return (
-                    <button
-                      key={planet.id}
-                      onClick={() => { onSelectPlanet(planet.id); setIsOpen(false); }}
-                      className={`planet-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left ${isSelected ? 'active' : ''}`}
-                    >
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: planet.color, boxShadow: isSelected ? `0 0 8px ${planet.color}` : 'none' }} />
-                      <span className={`flex-1 text-xs font-body ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>{planet.name}</span>
-                      {isSelected && <Crosshair className="h-3 w-3 text-signal opacity-70" />}
-                    </button>
-                  );
-                })}
+                <div className="space-y-0.5 max-h-64 overflow-y-auto">
+                  {planets.map(planet => {
+                    const isSelected = planet.id === selectedPlanetId;
+                    return (
+                      <button
+                        key={planet.id}
+                        onClick={() => { onSelectPlanet(planet.id); setIsOpen(false); }}
+                        className={`planet-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left ${isSelected ? 'active' : ''}`}
+                      >
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: planet.color, boxShadow: isSelected ? `0 0 8px ${planet.color}` : 'none' }} />
+                        <span className={`flex-1 text-xs font-body ${isSelected ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>{planet.name}</span>
+                        {isSelected && <Crosshair className="h-3 w-3 text-signal opacity-70" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
+
+            {mobileTab === 'tools' && (
+              <div className="p-3 space-y-2">
+                <MobileToolLink icon={<Sun className="h-3.5 w-3.5 text-solar" />} label="Solar Activity" desc="Live flares & CMEs" />
+                <MobileToolLink icon={<AlertTriangle className="h-3.5 w-3.5 text-alert" />} label="Near-Earth Objects" desc="Asteroid tracker" />
+                <MobileToolLink icon={<Satellite className="h-3.5 w-3.5 text-signal" />} label="Missions" desc="Spacecraft explorer" />
+                <p className="telemetry-label text-center pt-2 opacity-50">
+                  Open on desktop for full panels
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
     </>
   );
 };
+
+const MobileToolLink = ({ icon, label, desc }: { icon: React.ReactNode; label: string; desc: string }) => (
+  <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-panel-border/40 bg-panel-bg/30">
+    {icon}
+    <div>
+      <p className="text-xs text-foreground font-medium">{label}</p>
+      <p className="text-[0.6rem] text-muted-foreground">{desc}</p>
+    </div>
+  </div>
+);
 
 export default PlanetNavigation;
