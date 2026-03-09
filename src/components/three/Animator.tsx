@@ -13,10 +13,28 @@ interface AnimationProps {
   reticleRef?: React.MutableRefObject<THREE.Group | null>;
   getTimeScale: () => number;
   getCloseUpPlanetId: () => string | null;
+  getSelectedPlanetId?: () => string;
 }
 
+/** Cinematic dolly-zoom transition state */
+interface CameraTransition {
+  active: boolean;
+  progress: number;
+  duration: number; // seconds
+  startPos: THREE.Vector3;
+  startTarget: THREE.Vector3;
+  midPos: THREE.Vector3;
+  endPos: THREE.Vector3;
+  endTarget: THREE.Vector3;
+  startFov: number;
+  midFov: number;
+  endFov: number;
+}
+
+const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
 export const setupAnimation = ({
-  renderer, scene, camera, planetObjects, selectedPlanetId, isSpaceView = false, reticleRef, getTimeScale, getCloseUpPlanetId,
+  renderer, scene, camera, planetObjects, selectedPlanetId, isSpaceView = false, reticleRef, getTimeScale, getCloseUpPlanetId, getSelectedPlanetId,
 }: AnimationProps) => {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -30,13 +48,85 @@ export const setupAnimation = ({
   let closeUpGroup: THREE.Group | null = null;
   let currentCloseUpId: string | null = null;
 
+  // Cinematic transition state
+  let prevSelectedId = selectedPlanetId;
+  const transition: CameraTransition = {
+    active: false, progress: 0, duration: 2.2,
+    startPos: new THREE.Vector3(), startTarget: new THREE.Vector3(),
+    midPos: new THREE.Vector3(),
+    endPos: new THREE.Vector3(), endTarget: new THREE.Vector3(),
+    startFov: 75, midFov: 45, endFov: 75,
+  };
+
+  const clock = new THREE.Clock();
+
   const animate = () => {
+    const dt = clock.getDelta();
     const scale = getTimeScale();
-    simTime += 0.005 * scale; // base tick × user speed
+    simTime += 0.005 * scale;
+
+    // Check for planet switch → trigger cinematic transition
+    const currentSelectedId = getSelectedPlanetId ? getSelectedPlanetId() : selectedPlanetId;
+    if (currentSelectedId !== prevSelectedId && !isSpaceView && !getCloseUpPlanetId()) {
+      const fromPlanet = planetObjects.get(prevSelectedId);
+      const toPlanet = planetObjects.get(currentSelectedId);
+      if (fromPlanet?.mesh && toPlanet?.mesh) {
+        // Start cinematic dolly-zoom
+        transition.active = true;
+        transition.progress = 0;
+        transition.startPos.copy(camera.position);
+        transition.startTarget.copy(controls.target);
+        transition.startFov = camera.fov;
+
+        // End position: looking at new planet
+        transition.endTarget.copy(toPlanet.mesh.position);
+        transition.endPos.copy(toPlanet.mesh.position);
+        transition.endPos.y += 25;
+        transition.endPos.z += 40;
+        transition.endFov = 75;
+
+        // Mid position: pull back for dramatic dolly zoom
+        const midPoint = new THREE.Vector3().lerpVectors(fromPlanet.mesh.position, toPlanet.mesh.position, 0.5);
+        const dist = fromPlanet.mesh.position.distanceTo(toPlanet.mesh.position);
+        transition.midPos.set(midPoint.x, midPoint.y + dist * 0.4, midPoint.z + dist * 0.6);
+        transition.midFov = Math.max(30, 75 - dist * 0.15); // dolly zoom: narrow FOV at pull-back
+
+        // Disable controls during transition
+        controls.enabled = false;
+      }
+      prevSelectedId = currentSelectedId;
+    }
+
+    // Animate cinematic transition
+    if (transition.active) {
+      transition.progress += dt / transition.duration;
+      if (transition.progress >= 1) {
+        transition.progress = 1;
+        transition.active = false;
+        controls.enabled = true;
+      }
+
+      const t = easeInOutCubic(transition.progress);
+
+      // Two-phase bezier-like path: start→mid (0–0.5), mid→end (0.5–1)
+      if (t <= 0.5) {
+        const t2 = t * 2; // 0→1 for first half
+        camera.position.lerpVectors(transition.startPos, transition.midPos, t2);
+        camera.fov = THREE.MathUtils.lerp(transition.startFov, transition.midFov, t2);
+      } else {
+        const t2 = (t - 0.5) * 2; // 0→1 for second half
+        camera.position.lerpVectors(transition.midPos, transition.endPos, t2);
+        camera.fov = THREE.MathUtils.lerp(transition.midFov, transition.endFov, t2);
+      }
+      camera.updateProjectionMatrix();
+
+      // Smoothly move look-at target
+      const lookTarget = new THREE.Vector3().lerpVectors(transition.startTarget, transition.endTarget, t);
+      controls.target.copy(lookTarget);
+    }
 
     planetObjects.forEach((planetObj, planetId) => {
       if (planetObj.mesh) {
-        // Kepler elliptical motion
         const a: number = planetObj.semiMajorAxis ?? 115;
         const e: number = planetObj.eccentricity ?? 0;
         const inc: number = (planetObj.inclination ?? 0) * (Math.PI / 180);
@@ -46,7 +136,6 @@ export const setupAnimation = ({
         const speedMultiplier = getOrbitalSpeed(planetId);
         const angle = (planetObj.startAngle ?? 0) + simTime * speedMultiplier;
 
-        // Parametric ellipse position
         const xEllipse = a * Math.cos(angle) - c;
         const yEllipse = b * Math.sin(angle);
 
@@ -54,19 +143,16 @@ export const setupAnimation = ({
         planetObj.mesh.position.y = yEllipse * Math.sin(inc);
         planetObj.mesh.position.z = yEllipse * Math.cos(inc);
 
-        // Axial rotation — sidereal day approximation
         const rotSpeeds: Record<string, number> = {
           mercury: 0.003, venus: -0.001, earth: 0.02, mars: 0.019,
           jupiter: 0.045, saturn: 0.038, uranus: -0.022, neptune: 0.021,
         };
         planetObj.mesh.rotation.y += (rotSpeeds[planetId] || 0.01) * Math.abs(scale);
 
-        // Saturn rings follow planet
         if (planetId === 'saturn' && planetObj.ringsMesh) {
           planetObj.ringsMesh.position.copy(planetObj.mesh.position);
         }
 
-        // Moons orbit their planet
         if (planetObj.moons && planetObj.moonOrbitMeshes) {
           planetObj.moons.forEach((moon: THREE.Mesh, index: number) => {
             const moonOrbit = planetObj.moonOrbitMeshes[index];
@@ -127,7 +213,6 @@ export const setupAnimation = ({
     // Close-up mode
     const closeUpId = getCloseUpPlanetId();
     if (closeUpId && closeUpId !== currentCloseUpId) {
-      // Enter close-up: add atmosphere, clouds, city lights
       if (closeUpGroup) { scene.remove(closeUpGroup); closeUpGroup = null; }
       const target = planetObjects.get(closeUpId);
       if (target?.mesh) {
@@ -148,7 +233,6 @@ export const setupAnimation = ({
         scene.add(closeUpGroup);
       }
     } else if (!closeUpId && currentCloseUpId) {
-      // Exit close-up
       if (closeUpGroup) { scene.remove(closeUpGroup); closeUpGroup = null; }
       currentCloseUpId = null;
     }
@@ -160,7 +244,6 @@ export const setupAnimation = ({
         closeUpGroup.position.copy(target.mesh.position);
         const cloud = closeUpGroup.getObjectByName('cloudLayer');
         if (cloud) cloud.rotation.y += 0.001 * Math.abs(scale);
-        // Update city lights sun direction
         const cityLights = closeUpGroup.getObjectByName('cityLights');
         if (cityLights && (cityLights as THREE.Mesh).material) {
           const mat = (cityLights as THREE.Mesh).material as THREE.ShaderMaterial;
@@ -172,31 +255,34 @@ export const setupAnimation = ({
       }
     }
 
-    // Camera follow
-    if (closeUpId) {
-      const target = planetObjects.get(closeUpId);
-      if (target?.mesh) {
-        const radius = (target.mesh.geometry as THREE.SphereGeometry).parameters.radius;
-        targetPosition.copy(target.mesh.position);
-        targetPosition.y += radius * 0.5;
-        targetPosition.z += radius * 3.5;
-        targetLookAt.copy(target.mesh.position);
-        camera.position.lerp(targetPosition, 0.03);
-        const currentTarget = controls.target.clone();
-        currentTarget.lerp(targetLookAt, 0.03);
-        controls.target.copy(currentTarget);
-      }
-    } else if (!isSpaceView) {
-      const selectedPlanet = planetObjects.get(selectedPlanetId);
-      if (selectedPlanet?.mesh) {
-        targetPosition.copy(selectedPlanet.mesh.position);
-        targetPosition.y += 25;
-        targetPosition.z += 40;
-        targetLookAt.copy(selectedPlanet.mesh.position);
-        camera.position.lerp(targetPosition, 0.02);
-        const currentTarget = controls.target.clone();
-        currentTarget.lerp(targetLookAt, 0.02);
-        controls.target.copy(currentTarget);
+    // Camera follow (skip during cinematic transition)
+    if (!transition.active) {
+      if (closeUpId) {
+        const target = planetObjects.get(closeUpId);
+        if (target?.mesh) {
+          const radius = (target.mesh.geometry as THREE.SphereGeometry).parameters.radius;
+          targetPosition.copy(target.mesh.position);
+          targetPosition.y += radius * 0.5;
+          targetPosition.z += radius * 3.5;
+          targetLookAt.copy(target.mesh.position);
+          camera.position.lerp(targetPosition, 0.03);
+          const currentTarget = controls.target.clone();
+          currentTarget.lerp(targetLookAt, 0.03);
+          controls.target.copy(currentTarget);
+        }
+      } else if (!isSpaceView) {
+        const selId = getSelectedPlanetId ? getSelectedPlanetId() : selectedPlanetId;
+        const selectedPlanet = planetObjects.get(selId);
+        if (selectedPlanet?.mesh) {
+          targetPosition.copy(selectedPlanet.mesh.position);
+          targetPosition.y += 25;
+          targetPosition.z += 40;
+          targetLookAt.copy(selectedPlanet.mesh.position);
+          camera.position.lerp(targetPosition, 0.02);
+          const currentTarget = controls.target.clone();
+          currentTarget.lerp(targetLookAt, 0.02);
+          controls.target.copy(currentTarget);
+        }
       }
     }
 
@@ -210,7 +296,6 @@ export const setupAnimation = ({
 };
 
 const getOrbitalSpeed = (planetId: string): number => {
-  // Relative orbital speeds (Earth = 1.0), based on Kepler's 3rd law
   const speeds: Record<string, number> = {
     mercury: 4.15, venus: 1.62, earth: 1.0, mars: 0.531,
     jupiter: 0.084, saturn: 0.034, uranus: 0.012, neptune: 0.006,
