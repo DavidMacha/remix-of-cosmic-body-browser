@@ -34,9 +34,9 @@ const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highl
   const frameIdRef = useRef<number>(0);
   const timeScaleRef = useRef<number>(timeScale);
   const closeUpPlanetIdRef = useRef<string | null>(closeUpPlanetId || null);
+  const selectedPlanetIdRef = useRef<string>(planet.id);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Keep timeScale ref in sync so the animation loop always reads the latest value
   useEffect(() => {
     timeScaleRef.current = timeScale;
   }, [timeScale]);
@@ -44,6 +44,10 @@ const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highl
   useEffect(() => {
     closeUpPlanetIdRef.current = closeUpPlanetId || null;
   }, [closeUpPlanetId]);
+
+  useEffect(() => {
+    selectedPlanetIdRef.current = planet.id;
+  }, [planet.id]);
 
   // Targeting reticle for search highlight
   useEffect(() => {
@@ -134,6 +138,7 @@ const PlanetScene = ({ planet, planets, onSceneReady, isSpaceView = false, highl
       reticleRef,
       getTimeScale: () => timeScaleRef.current,
       getCloseUpPlanetId: () => closeUpPlanetIdRef.current,
+      getSelectedPlanetId: () => selectedPlanetIdRef.current,
     });
 
     frameIdRef.current = frameId;
